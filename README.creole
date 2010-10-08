@@ -7,7 +7,7 @@ This is an inventory addon for WoW featuring item filters, new items, support fo
 
 === r37 ===
 
- * **Removed support for WoW 3.3.5 or lower!**
+ * **Only for use with WoW 4.0.1+!**
  * Added command to move custom containers between the left and right columns.
  * Added commands to move custom containers up and down in their respective column.
  * Added command to set the filter priority of a custom container (high priority prevents items assigned to this container from being classified as junk or new, low priority doesn't).
@@ -19,7 +19,7 @@ This is an inventory addon for WoW featuring item filters, new items, support fo
  * Removed button which toggled the visibility of the ammo/shard containers.
 
 
-=== r35 & 36 ===
+=== r36 ===
 
  * Added commands to add and remove custom containers (/cbniv addbag name, /cbniv delbag name).
  * Custom container names may contain spaces now.
