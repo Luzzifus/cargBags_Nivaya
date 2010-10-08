@@ -30,6 +30,7 @@ local optDefaults = {
                     Unlocked = true,
                     SortBags = true,
                     SortBank = true,
+                    BankCustomBags = false,
                     }
 
 -- Those are internal settings, don't touch them at all:
