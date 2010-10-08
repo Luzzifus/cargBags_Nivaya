@@ -1,7 +1,8 @@
 == Description ==
 
-This is an inventory addon for WoW featuring item filters, new items, support for item sets, empty bagspace compression, custom containers and alot more. It is a layout for cargBags. However, cargBags 2.x is embedded, so you don't need to download it separately.
+This is an inventory addon for WoW featuring item filters, new items, support for item sets, empty bagspace compression, custom containers and alot more. It is a layout for [[http://github.com/xconstruct/cargBags|cargBags]] by [[http://github.com/xconstruct|Cargor]]. However, cargBags 2.x is embedded, so you don't need to download it separately.
 
+For a detailed description and a feature overview visit [[http://www.wowinterface.com/downloads/info13394-cargBags_Nivaya.html]].
 
 == Version History ==
 
