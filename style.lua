@@ -254,7 +254,7 @@ function MyContainer:OnCreate(name, settings)
 	self.Settings = settings
 
     local tBag, tBank, tKey = (name == "cBniv_Bag"), (name == "cBniv_Bank"), (name == "cBniv_Keyring")
-    local tBankBags = string.find(name, "cBniv_Bank")
+    local tBankBags = string.find(name, "Bank")
 	self:EnableMouse(true)
     
 	self.UpdateDimensions = UpdateDimensions
@@ -296,7 +296,7 @@ function MyContainer:OnCreate(name, settings)
 	-- Caption and close button
 	local caption = background:CreateFontString(background, "OVERLAY", "GameFontNormal")
 	if(caption) then
-		local t = L.bagCaptions[self.name]
+		local t = L.bagCaptions[self.name] or (tBankBags and strsub(self.name, 5))
 		if not t then t = self.name end
         if self.Name == "cBniv_ItemSets" then t=ItemSetCaption..t end
 		caption:SetText(t)

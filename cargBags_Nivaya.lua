@@ -67,12 +67,9 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     cB_filterEnabled["Armor"] = cBnivCfg.Armor
     cB_filterEnabled["TradeGoods"] = cBnivCfg.TradeGoods
     cB_filterEnabled["Junk"] = cBnivCfg.Junk
-
-    -- TODO: replace everything between this and "TODO end" after a while!
-    --
-    -- replace with:
-    -- for _,v in ipairs(cB_CustomBags) do bagCreated[v.name] = true end    
-    --
+    cBniv.BankCustomBags = cBnivCfg.BankCustomBags
+    
+    -- TODO: remove everything between this and "TODO end" after a while!
     -- neccessary for upgrading from r36 or older:
     local tTable = {}
     for i,v in ipairs(cB_CustomBags) do
@@ -83,7 +80,6 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     cB_CustomBags = {}
     for i,v in ipairs(tTable) do 
         cB_CustomBags[i] = { name = v.name, col = v.col, prio = v.prio } 
-        bagCreated[v.name] = true
     end
 
     cBnivCfg.AmmoAlwaysHidden = nil
@@ -96,6 +92,14 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
 
     -- bank bags
     cB_Bags.bankSets        = C:New("cBniv_BankSets")
+    
+    if cBniv.BankCustomBags then
+        for _,v in ipairs(cB_CustomBags) do 
+            cB_Bags['Bank'..v.name] = C:New('Bank'..v.name) 
+            cB_existsBankBag[v.name] = true
+        end
+    end
+    
     cB_Bags.bankArmor       = C:New("cBniv_BankArmor")
     cB_Bags.bankConsumables = C:New("cBniv_BankCons")
     cB_Bags.bankQuest       = C:New("cBniv_BankQuest")
@@ -108,29 +112,33 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     cB_Bags.bankQuest       :SetExtendedFilter(cB_Filters.fItemClass, "BankQuest")
     cB_Bags.bankTrade       :SetExtendedFilter(cB_Filters.fItemClass, "BankTradeGoods")
     cB_Bags.bank            :SetMultipleFilters(true, cB_Filters.fBank, cB_Filters.fHideEmpty)
+    if cBniv.BankCustomBags then
+        for _,v in ipairs(cB_CustomBags) do cB_Bags['Bank'..v.name]:SetExtendedFilter(cB_Filters.fItemClass, 'Bank'..v.name) end
+    end
 
     -- inventory bags
     cB_Bags.key         = C:New("cBniv_Keyring")
     cB_Bags.bagItemSets = C:New("cBniv_ItemSets")
     cB_Bags.bagStuff    = C:New("cBniv_Stuff")
-
+    
     for _,v in ipairs(cB_CustomBags) do 
-        if (v.prio == 1) then
-            cB_Bags[v.name] = C:New(v.name)
-            cB_filterEnabled[v.name] = true 
-        end
+        if (v.prio == 1) then 
+            cB_Bags[v.name] = C:New(v.name) 
+            bagCreated[v.name] = true
+            cB_filterEnabled[v.name] = true
+        end 
     end
     
     cB_Bags.bagJunk     = C:New("cBniv_Junk")
     cB_Bags.bagNew      = C:New("cBniv_NewItems")
 
     for _,v in ipairs(cB_CustomBags) do 
-        if (v.prio == 0) then
-            cB_Bags[v.name] = C:New(v.name)
-            cB_filterEnabled[v.name] = true 
+        if (v.prio == 0) then 
+            cB_Bags[v.name] = C:New(v.name) 
+            bagCreated[v.name] = true
+            cB_filterEnabled[v.name] = true
         end
     end
-    
     cB_Bags.armor       = C:New("cBniv_Armor")
     cB_Bags.quest       = C:New("cBniv_Quest")
     cB_Bags.consumables = C:New("cBniv_Consumables")
@@ -149,6 +157,9 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     cB_Bags.main        :SetMultipleFilters(true, cB_Filters.fBags, cB_Filters.fHideEmpty)
     for _,v in pairs(cB_CustomBags) do cB_Bags[v.name]:SetExtendedFilter(cB_Filters.fItemClass, v.name) end
 
+    cB_Bags.main:SetPoint("BOTTOMRIGHT", -20, 150)
+    cB_Bags.bank:SetPoint("LEFT", 15, 0)
+    
     cbNivaya:CreateAnchors()
     cbNivaya:Init()
 end
@@ -169,7 +180,7 @@ function cbNivaya:CreateAnchors()
     
     -- neccessary if this function is used to update the anchors:
     for k,_ in pairs(cB_Bags) do
-        cB_Bags[k]:ClearAllPoints()
+        if not ((k == 'main') or (k == 'bank')) then cB_Bags[k]:ClearAllPoints() end
         cB_Bags[k].AnchorTo = nil
         cB_Bags[k].AnchorDir = nil
         cB_Bags[k].AnchorTargets = nil
@@ -179,9 +190,6 @@ function cbNivaya:CreateAnchors()
     CreateAnchorInfo(nil, cB_Bags.main, "Bottom")
     CreateAnchorInfo(nil, cB_Bags.bank, "Bottom")
 
-    cB_Bags.main:SetPoint("BOTTOMRIGHT", -20, 150)
-    cB_Bags.bank:SetPoint("LEFT", 15, 0)
-    
     -- Bank Anchors:
     CreateAnchorInfo(cB_Bags.bank, cB_Bags.bankArmor, "Right")
     CreateAnchorInfo(cB_Bags.bankArmor, cB_Bags.bankSets, "Bottom")
@@ -189,6 +197,19 @@ function cbNivaya:CreateAnchors()
     
     CreateAnchorInfo(cB_Bags.bank, cB_Bags.bankConsumables, "Bottom")
     CreateAnchorInfo(cB_Bags.bankConsumables, cB_Bags.bankQuest, "Bottom")
+    
+    -- Bank Custom Container Anchors:
+    if cBniv.BankCustomBags then
+        local ref = { [0] = 0, [1] = 0 }
+        for _,v in ipairs(cB_CustomBags) do
+            if bagCreated[v.name] then
+                local c = v.col
+                if ref[c] == 0 then ref[c] = (c == 0) and cB_Bags.bankQuest or cB_Bags.bankTrade end
+                CreateAnchorInfo(ref[c], cB_Bags['Bank'..v.name], "Bottom")
+                ref[c] = cB_Bags['Bank'..v.name]
+            end
+        end
+    end
     
     -- Bag Anchors:
     CreateAnchorInfo(cB_Bags.main, cB_Bags.key, "Bottom")
@@ -248,8 +269,20 @@ function cbNivaya:OnClose()
     for _,v in ipairs(cB_CustomBags) do if bagCreated[v.name] then cbNivaya:HideBags(cB_Bags[v.name]) end end
 end
 
-function cbNivaya:OnBankOpened() cB_Bags.bank:Show(); cbNivaya:ShowBags(cB_Bags.bankSets, cB_Bags.bankArmor, cB_Bags.bankQuest, cB_Bags.bankTrade, cB_Bags.bankConsumables) end
-function cbNivaya:OnBankClosed() cbNivaya:HideBags(cB_Bags.bank, cB_Bags.bankSets, cB_Bags.bankArmor, cB_Bags.bankQuest, cB_Bags.bankTrade, cB_Bags.bankConsumables) end
+function cbNivaya:OnBankOpened() 
+    cB_Bags.bank:Show(); 
+    cbNivaya:ShowBags(cB_Bags.bankSets, cB_Bags.bankArmor, cB_Bags.bankQuest, cB_Bags.bankTrade, cB_Bags.bankConsumables) 
+    for _,v in ipairs(cB_CustomBags) do 
+        if cBniv.BankCustomBags and bagCreated[v.name] then cbNivaya:ShowBags(cB_Bags['Bank'..v.name]) end 
+    end
+end
+
+function cbNivaya:OnBankClosed()
+    cbNivaya:HideBags(cB_Bags.bank, cB_Bags.bankSets, cB_Bags.bankArmor, cB_Bags.bankQuest, cB_Bags.bankTrade, cB_Bags.bankConsumables)
+    for _,v in ipairs(cB_CustomBags) do 
+        if cBniv.BankCustomBags and bagCreated[v.name] then cbNivaya:HideBags(cB_Bags['Bank'..v.name]) end 
+    end
+end
 
 local SetFrameMovable = function(f, v)
     f:SetMovable(true)
@@ -453,7 +486,11 @@ local function HandleSlash(str)
             cB_CustomBags[pos] = ele
             cbNivaya:CreateAnchors()
             StatusMsgVal('The specified custom container has been moved to position ', '.', pos, true)
-        end                        
+        end
+
+    elseif str == 'bankbags' then
+        cBnivCfg.BankCustomBags = not cBnivCfg.BankCustomBags
+        StatusMsg('Display of custom containers in the bank is now ', '. Reload your UI for this change to take effect!', cBnivCfg.BankCustomBags, true, false)
 
     else
         ChatFrame1:AddMessage('|cFFFFFF00cargBags_Nivaya:|r')
@@ -475,6 +512,7 @@ local function HandleSlash(str)
         StatusMsg('', " |cFFFFFF00bagprio|r [name] - Changes the filter priority of a custom container. High priority prevents items from being classified as junk or new, low priority doesn't.")
         StatusMsg('', ' |cFFFFFF00orderup|r [name] - Moves a custom container up.')
         StatusMsg('', ' |cFFFFFF00orderdn|r [name] - Moves a custom container down.')
+        StatusMsg('(', ') |cFFFFFF00bankbags|r - Show custom containers in the bank too.', cBnivCfg.BankCustomBags, false, true)
     end
     cbNivaya:UpdateBags()
 end
