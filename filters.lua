@@ -11,7 +11,7 @@ cBniv_CatInfo = {}
 cB_ItemClass = {}
 
 cB_existsBankBag = { Armor = true, Quest = true, TradeGoods = true, Consumables = true }
-cB_filterEnabled = { Armor = true, Quest = true, TradeGoods = true, Consumables = true, Keyring = true, Ammo = true, Soulshards = true, Junk = true, Stuff = true }
+cB_filterEnabled = { Armor = true, Quest = true, TradeGoods = true, Consumables = true, Keyring = true, Junk = true, Stuff = true }
 
 --------------------
 --Basic filters
@@ -44,21 +44,18 @@ function cbNivaya:ClassifyItem(item)
     -- keyring
     if item.bagID == -2 then cB_ItemClass[item.id] = "Keyring"; return true end
 
-    -- user assigned containers
-    local tC = cBniv_CatInfo[item.name]
-    if tC then cB_ItemClass[item.id] = tC; return true end
+    -- TODO: remove after a while --
+    -- neccessary for upgrading from r36 or older:
+    local tcat = cBniv_CatInfo[item.name]
+    if tcat then
+        cBniv_CatInfo[item.id] = tcat
+        cBniv_CatInfo[item.name] = nil
+    end
+    -- TODO end --
 
-	-- soul shards und soul bag slots
-	local t, b  = false, item.bagType
-	if b then if (b == 4) then t = true end end
-	if item.name == L.SoulShard then t = true end
-	if t then cB_ItemClass[item.id] = "Soulshards"; return true end
-	
-	-- ammo and ammo bag slots
-	local t = false
-	if b then if (b >= 1 and b <= 3) then t = true end end
-	if (item.type == L.Arrow) or (item.type == L.Bullet) then t = true end
-	if t then cB_ItemClass[item.id] = "Ammo"; return true end
+    -- user assigned containers
+    local tC = cBniv_CatInfo[item.id]
+    if tC then cB_ItemClass[item.id] = tC; return true end
 
 	-- junk
 	local _,_,tQ = GetItemInfo(item.link)
@@ -79,7 +76,7 @@ end
 ------------------------------------------
 -- New Items filter and related functions
 ------------------------------------------
-local getItemCount = function(item)
+function cbNivaya:getItemCount(itemName)
 	local tItemCount = 0
 	for i = 0,4 do
 		local tNumSlots = GetContainerNumSlots(i)
@@ -88,7 +85,7 @@ local getItemCount = function(item)
 				local tLink = GetContainerItemLink(i,j)
 				local tName
 				if tLink then tName = GetItemInfo(tLink) end
-				if tName == item.name then
+				if tName == itemName then
 					local _,tStackCount = GetContainerItemInfo(i,j)
 					tItemCount = tItemCount + tStackCount
 				end
@@ -105,7 +102,7 @@ cB_Filters.fNewItems = function(item)
     
     if not cB_KnownItems[item.name] then return true end
 	
-    local t = getItemCount(item)
+    local t = cbNivaya:getItemCount(item.name)
 	return (t > cB_KnownItems[item.name]) and true or false
 end
 

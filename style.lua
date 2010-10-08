@@ -359,22 +359,6 @@ function MyContainer:OnCreate(name, settings)
             resetBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -22-tBtnOffs, 2)
             resetBtn:SetScript("OnClick", function() resetNewItems(self) end)
         end
-	
-        if tBag then
-            -- Button to toggle Ammo/Shard bag:
-            local AmmoBtn = createTextButton("A/S", self, 35, 20)
-            AmmoBtn:SetPoint("BOTTOMRIGHT", self.bagToggle, "BOTTOMLEFT", 0, 0)
-            AmmoBtn:SetScript("OnClick", function() 
-                if not cBniv.showAmmo then
-                    cBniv.showAmmo = true
-                    cbNivaya:ShowBags(cB_Bags.bagSoul, cB_Bags.bagAmmo)
-                else 
-                    cBniv.showAmmo = false
-                    cB_Bags.bagSoul:Hide()
-                    cB_Bags.bagAmmo:Hide()                
-                end
-            end)
-        end        
     end
 
     -- Item drop target

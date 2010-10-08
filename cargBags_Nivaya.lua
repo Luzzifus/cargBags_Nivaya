@@ -14,7 +14,7 @@ local L = cBnivL
 cB_Bags = {}
 cB_BagHidden = {}
 cB_CustomBags = {}
-cB_ActiveCustomBags = {}
+local bagCreated = {}
 
 -- Those are default values only, change them ingame via "/cbniv":
 local optDefaults = {
@@ -23,7 +23,6 @@ local optDefaults = {
                     Armor = true,
                     CoolStuff = false,
                     Junk = true,
-                    AmmoAlwaysHidden = false,
                     BankBlack = false,
                     scale = 0.8,
                     FilterBank = true,
@@ -62,21 +61,36 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
 	self:UnregisterEvent(event)
     
     LoadDefaults()
-    if cBnivCfg.optAmmoAlwaysHidden then cBniv.showAmmo = false end
     UIDropDownMenu_Initialize(cbNivCatDropDown, cbNivaya.CatDropDownInit, "MENU")
     
     cB_filterEnabled["Armor"] = cBnivCfg.Armor
     cB_filterEnabled["TradeGoods"] = cBnivCfg.TradeGoods
     cB_filterEnabled["Junk"] = cBnivCfg.Junk
-    
-    for _,v in pairs(cB_CustomBags) do
-        table.insert(cB_ActiveCustomBags, v)
+
+    -- TODO: replace everything between this and "TODO end" after a while!
+    --
+    -- replace with:
+    -- for _,v in ipairs(cB_CustomBags) do bagCreated[v.name] = true end    
+    --
+    -- neccessary for upgrading from r36 or older:
+    local tTable = {}
+    for i,v in ipairs(cB_CustomBags) do
+        local n = v.name or v
+        tTable[i] = { name = n, col = v.col or 0, prio = v.prio or 1 }
     end
+
+    cB_CustomBags = {}
+    for i,v in ipairs(tTable) do 
+        cB_CustomBags[i] = { name = v.name, col = v.col, prio = v.prio } 
+        bagCreated[v.name] = true
+    end
+
+    cBnivCfg.AmmoAlwaysHidden = nil
+    -- TODO end --
     
     -----------------
     -- Frame Spawns
     -----------------
-
     local C = cbNivaya:GetContainerClass()
 
     -- bank bags
@@ -96,13 +110,26 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
 
     -- inventory bags
     cB_Bags.key         = C:New("cBniv_Keyring")
-    cB_Bags.bagSoul     = C:New("cBniv_Soulshards")
-    cB_Bags.bagAmmo     = C:New("cBniv_Ammo")
     cB_Bags.bagItemSets = C:New("cBniv_ItemSets")
     cB_Bags.bagStuff    = C:New("cBniv_Stuff")
-    for _,v in pairs(cB_ActiveCustomBags) do cB_Bags[v] = C:New(v); cB_filterEnabled[v] = true end
+
+    for _,v in ipairs(cB_CustomBags) do 
+        if (v.prio == 1) then
+            cB_Bags[v.name] = C:New(v.name)
+            cB_filterEnabled[v.name] = true 
+        end
+    end
+    
     cB_Bags.bagJunk     = C:New("cBniv_Junk")
     cB_Bags.bagNew      = C:New("cBniv_NewItems")
+
+    for _,v in ipairs(cB_CustomBags) do 
+        if (v.prio == 0) then
+            cB_Bags[v.name] = C:New(v.name)
+            cB_filterEnabled[v.name] = true 
+        end
+    end
+    
     cB_Bags.armor       = C:New("cBniv_Armor")
     cB_Bags.quest       = C:New("cBniv_Quest")
     cB_Bags.consumables = C:New("cBniv_Consumables")
@@ -110,8 +137,6 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     cB_Bags.main        = C:New("cBniv_Bag")
 
     cB_Bags.key         :SetExtendedFilter(cB_Filters.fItemClass, "Keyring")
-    cB_Bags.bagSoul     :SetExtendedFilter(cB_Filters.fItemClass, "Soulshards")
-    cB_Bags.bagAmmo     :SetExtendedFilter(cB_Filters.fItemClass, "Ammo")
     cB_Bags.bagItemSets :SetFilter(cB_Filters.fItemSets, true)
     cB_Bags.bagStuff    :SetExtendedFilter(cB_Filters.fItemClass, "Stuff")
     cB_Bags.bagJunk     :SetExtendedFilter(cB_Filters.fItemClass, "Junk")
@@ -121,8 +146,13 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     cB_Bags.consumables :SetExtendedFilter(cB_Filters.fItemClass, "Consumables")
     cB_Bags.tradegoods  :SetExtendedFilter(cB_Filters.fItemClass, "TradeGoods")
     cB_Bags.main        :SetMultipleFilters(true, cB_Filters.fBags, cB_Filters.fHideEmpty)
-    for _,v in pairs(cB_ActiveCustomBags) do cB_Bags[v]:SetExtendedFilter(cB_Filters.fItemClass, v) end
+    for _,v in pairs(cB_CustomBags) do cB_Bags[v.name]:SetExtendedFilter(cB_Filters.fItemClass, v.name) end
 
+    cbNivaya:CreateAnchors()
+    cbNivaya:Init()
+end
+
+function cbNivaya:CreateAnchors()
     -----------------------------------------------
     -- Store the anchoring order:
     -- read: "tar" is anchored to "src" in the direction denoted by "dir".
@@ -135,13 +165,21 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
             src.AnchorTargets[tar] = true
         end
     end
+    
+    -- neccessary if this function is used to update the anchors:
+    for k,_ in pairs(cB_Bags) do
+        cB_Bags[k]:ClearAllPoints()
+        cB_Bags[k].AnchorTo = nil
+        cB_Bags[k].AnchorDir = nil
+        cB_Bags[k].AnchorTargets = nil
+    end
 
     -- Main Anchors:
     CreateAnchorInfo(nil, cB_Bags.main, "Bottom")
     CreateAnchorInfo(nil, cB_Bags.bank, "Bottom")
 
     cB_Bags.main:SetPoint("BOTTOMRIGHT", -20, 150)
-    cB_Bags.bank:SetPoint("LEFT", 15, 0)    
+    cB_Bags.bank:SetPoint("LEFT", 15, 0)
     
     -- Bank Anchors:
     CreateAnchorInfo(cB_Bags.bank, cB_Bags.bankArmor, "Right")
@@ -158,23 +196,25 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     CreateAnchorInfo(cB_Bags.bagItemSets, cB_Bags.armor, "Top")
     CreateAnchorInfo(cB_Bags.armor, cB_Bags.bagJunk, "Top")
     CreateAnchorInfo(cB_Bags.bagJunk, cB_Bags.bagNew, "Top")
-    CreateAnchorInfo(cB_Bags.bagNew, cB_Bags.bagSoul, "Top")
-    CreateAnchorInfo(cB_Bags.bagSoul, cB_Bags.bagAmmo, "Top")
 
     CreateAnchorInfo(cB_Bags.main, cB_Bags.tradegoods, "Top")
     CreateAnchorInfo(cB_Bags.tradegoods, cB_Bags.consumables, "Top")
     CreateAnchorInfo(cB_Bags.consumables, cB_Bags.quest, "Top")
     CreateAnchorInfo(cB_Bags.quest, cB_Bags.bagStuff, "Top")
     
-    local ref = 0
-    for _,v in pairs(cB_ActiveCustomBags) do
-        if ref == 0 then ref = cB_Bags.bagStuff end
-        CreateAnchorInfo(ref, cB_Bags[v], "Top")
-        ref = cB_Bags[v]
+    -- Custom Container Anchors:
+    local ref = { [0] = 0, [1] = 0 }
+    for _,v in ipairs(cB_CustomBags) do
+        if bagCreated[v.name] then
+            local c = v.col
+            if ref[c] == 0 then ref[c] = (c == 0) and cB_Bags.bagStuff or cB_Bags.bagNew end
+            CreateAnchorInfo(ref[c], cB_Bags[v.name], "Top")
+            ref[c] = cB_Bags[v.name]
+        end
     end
     
-    cbNivaya:UpdateAnchors(self)
-    cbNivaya:Init()
+    -- Finally update all anchors:
+    for _,v in pairs(cB_Bags) do cbNivaya:UpdateAnchors(v) end
 end
 
 function cbNivaya:UpdateAnchors(self)
@@ -198,15 +238,13 @@ function cbNivaya:OnOpen()
     cB_Bags.main:Show()
     cbNivaya:ShowBags(cB_Bags.armor, cB_Bags.bagNew, cB_Bags.bagItemSets, cB_Bags.quest, cB_Bags.consumables, 
                       cB_Bags.tradegoods, cB_Bags.bagStuff, cB_Bags.bagJunk)
-    if cBniv.showAmmo and not cBnivCfg.AmmoAlwaysHidden then cbNivaya:ShowBags(cB_Bags.bagSoul, cB_Bags.bagAmmo) end
-    for _,v in pairs(cB_ActiveCustomBags) do cbNivaya:ShowBags(cB_Bags[v]) end
+    for _,v in ipairs(cB_CustomBags) do if bagCreated[v.name] then cbNivaya:ShowBags(cB_Bags[v.name]) end end
 end
 
 function cbNivaya:OnClose()
     cbNivaya:HideBags(cB_Bags.main, cB_Bags.armor, cB_Bags.bagNew, cB_Bags.bagItemSets, cB_Bags.quest, cB_Bags.consumables, 
-                      cB_Bags.tradegoods, cB_Bags.bagStuff, cB_Bags.bagJunk, cB_Bags.key, cB_Bags.bagSoul, cB_Bags.bagAmmo)
-    if cBnivCfg.AmmoAlwaysHidden then cBniv.showAmmo = false end
-    for _,v in pairs(cB_ActiveCustomBags) do cbNivaya:HideBags(cB_Bags[v]) end
+                      cB_Bags.tradegoods, cB_Bags.bagStuff, cB_Bags.bagJunk, cB_Bags.key)
+    for _,v in ipairs(cB_CustomBags) do if bagCreated[v.name] then cbNivaya:HideBags(cB_Bags[v.name]) end end
 end
 
 function cbNivaya:OnBankOpened() cB_Bags.bank:Show(); cbNivaya:ShowBags(cB_Bags.bankSets, cB_Bags.bankArmor, cB_Bags.bankQuest, cB_Bags.bankTrade, cB_Bags.bankConsumables) end
@@ -234,33 +272,46 @@ function cbNivaya:CatDropDownInit()
   
     local function AddInfoItem(type)
         local caption = "cBniv_"..type
-        local t = L.bagCaptions[caption]
+        local t = L.bagCaptions[caption] or L[type]
         info.text = t and t or type
         info.value = type
-        info.func = function(self) cbNivaya:CatDropDownOnClick(self) end
+        
+        if (type == "-------------") then
+            info.func = nil
+        else
+            info.func = function(self) cbNivaya:CatDropDownOnClick(self, type) end
+        end
+        
         info.owner = self:GetParent()
         UIDropDownMenu_AddButton(info, level)
     end
 
+    AddInfoItem("MarkAsNew")
+    AddInfoItem("MarkAsKnown")
+    AddInfoItem("-------------")
     AddInfoItem("Armor")
     AddInfoItem("Consumables")
     AddInfoItem("Quest")
     AddInfoItem("TradeGoods")
     AddInfoItem("Stuff")
-    AddInfoItem("ItemSets")
-    AddInfoItem("Ammo")
     AddInfoItem("Junk")
     AddInfoItem("Bag")
-    for _,v in pairs(cB_ActiveCustomBags) do AddInfoItem(v) end
+    for _,v in ipairs(cB_CustomBags) do if bagCreated[v.name] then AddInfoItem(v.name) end end
 end
 
-function cbNivaya:CatDropDownOnClick(self)
+function cbNivaya:CatDropDownOnClick(self, type)
     local value = self.value
     local itemName = cbNivCatDropDown.itemName
     local itemID = cbNivCatDropDown.itemID
-    
-    cBniv_CatInfo[itemName] = value
-    if (itemID ~= nil) then cB_ItemClass[itemID] = nil end
+
+    if (type == "MarkAsNew") then
+        cB_KnownItems[itemName] = nil
+    elseif (type == "MarkAsKnown") then
+        cB_KnownItems[itemName] = cbNivaya:getItemCount(itemName)
+    else
+        cBniv_CatInfo[itemID] = value
+        if (itemID ~= nil) then cB_ItemClass[itemID] = nil end
+    end
     cbNivaya:UpdateBags()
 end
 
@@ -280,6 +331,23 @@ end
 
 local function HandleSlash(str)
     local str, str2 = strsplit(" ", str, 2)
+    
+    if ((str == 'addbag') or (str == 'delbag') or (str == 'movebag') or (str == 'bagprio') or (str == 'orderup') or (str == 'orderdn')) and (not str2) then
+        StatusMsg('You have to specify a name, e.g. /cbniv '..str..' TestBag.', '', nil, true, false)
+        return false
+    end
+    
+    local numBags, idx = 0, -1
+    for i,v in ipairs(cB_CustomBags) do
+        numBags = numBags + 1
+        if v.name == str2 then idx = i end
+    end
+
+    if ((str == 'delbag') or (str == 'movebag') or (str == 'bagprio') or (str == 'orderup') or (str == 'orderdn')) and (idx == -1) then
+        StatusMsg('There is no custom container named |cFF00FF00'..str2, '|r.', nil, true, false)
+        return false
+    end
+    
     if str == 'new' then
         cBnivCfg.NewItems = not cBnivCfg.NewItems
         StatusMsg('The "New Items" filter is now ', '.', cBnivCfg.NewItems, true, false)
@@ -295,9 +363,6 @@ local function HandleSlash(str)
         cBnivCfg.Junk = not cBnivCfg.Junk
         cB_filterEnabled["Junk"] = cBnivCfg.Junk
         StatusMsg('The "Junk" filter is now ', '.', cBnivCfg.Junk, true, false)
-    elseif str == 'ammo' then
-        cBnivCfg.AmmoAlwaysHidden = not cBnivCfg.AmmoAlwaysHidden
-        StatusMsg('Hiding Ammo/Shard bags by default is now ', '.', cBnivCfg.AmmoAlwaysHidden, true, false)
     elseif str == 'bankbg' then
         cBnivCfg.BankBlack = not cBnivCfg.BankBlack
         StatusMsg('Black background color for the bank is now ', '. Reload your UI for this change to take effect!', cBnivCfg.BankBlack, true, false)
@@ -329,6 +394,7 @@ local function HandleSlash(str)
     elseif str == 'sortbank' then
         cBnivCfg.SortBank = not cBnivCfg.SortBank
         StatusMsg('Auto sorting bank is now ', '. Reload your UI for this change to take effect!', cBnivCfg.SortBank, true, false)
+
     elseif str == 'scale' then
         local t = tonumber(str2)
         if t then
@@ -338,63 +404,76 @@ local function HandleSlash(str)
         else
             StatusMsg('You have to specify a value, e.g. /cbniv scale 0.8.', '', nil, true, false)
         end
+
     elseif str == 'addbag' then
-        local t = str2
-        if t then
-            local bagNum = -1
-            for i,v in ipairs(cB_CustomBags) do if v == t then bagNum = i end end
-            
-            if bagNum == -1 then
-                table.insert(cB_CustomBags, t)
-                StatusMsg('The new custom bag has been created. Reload your UI for this change to take effect!', '', nil, true, false)
-            else
-                StatusMsg('A bag with this name already exists.', '', nil, true, false)
-            end
+        if not bagExists then
+            local i = numBags + 1
+            cB_CustomBags[i] = {}
+            cB_CustomBags[i].name = str2
+            cB_CustomBags[i].col = 0
+            cB_CustomBags[i].prio = 1
+            StatusMsg('The new custom container has been created. Reload your UI for this change to take effect!', '', nil, true, false)
         else
-            StatusMsg('You have to specify a name, e.g. /cbniv addbag TestBag.', '', nil, true, false)
+            StatusMsg('A custom container with this name already exists.', '', nil, true, false)
         end
+
     elseif str == 'delbag' then
-        local t = str2
-        if t then
-            local bagNum = -1
-            for i,v in ipairs(cB_CustomBags) do if v == t then bagNum = i end end
-            
-            if bagNum > -1 then
-                table.remove(cB_CustomBags, bagNum)
-                StatusMsg('The specified custom bag has been removed. Reload your UI for this change to take effect!', '', nil, true, false)
-            else
-                StatusMsg('There is no bag with this name.', '', nil, true, false)
-            end
-        else
-            StatusMsg('You have to specify a name, e.g. /cbniv delbag TestBag.', '', nil, true, false)
-        end
-    elseif str == 'listbags' then
-        local bagNum = -1
-        for i,v in ipairs(cB_CustomBags) do bagNum = i end
+        table.remove(cB_CustomBags, idx)
+        StatusMsg('The specified custom container has been removed. Reload your UI for this change to take effect!', '', nil, true, false)
         
-        if bagNum == -1 then
+    elseif str == 'listbags' then
+        if numBags == 0 then
             StatusMsgVal('There are ', ' custom containers.', 0, true, false)
         else
-            StatusMsgVal('There are ', ' custom containers:', bagNum, true, false)
-            for i,v in ipairs(cB_CustomBags) do StatusMsg(i..'. '..v, '', nil, true, false) end
+            StatusMsgVal('There are ', ' custom containers:', numBags, true, false)
+            for i,v in ipairs(cB_CustomBags) do 
+                StatusMsg(i..'. '..v.name..' (|cFF00FF00'..((v.col == 0) and 'right' or 'left')..'|r column, |cFF00FF00'..((v.prio == 1) and 'high' or 'low')..'|r priority)', '', nil, true, false)
+            end
         end
+
+    elseif str == 'movebag' then
+        local tcol = (cB_CustomBags[idx].col + 1) % 2
+        cB_CustomBags[idx].col = tcol
+        cbNivaya:CreateAnchors()
+        StatusMsg('The specified custom container has been moved to the |cFF00FF00'..((tcol == 0) and 'right' or 'left'), '|r column.', nil, true, false)
+
+    elseif str == 'bagprio' then
+        local tprio = (cB_CustomBags[idx].prio + 1) % 2
+        cB_CustomBags[idx].prio = tprio 
+        StatusMsg('The priority of the specified custom container has been set to |cFF00FF00'..((tprio == 1) and 'high' or 'low')..'|r. Reload your UI for this change to take effect!', '', nil, true, false)
+
+    elseif (str == 'orderup') or (str == 'orderdn') then
+        local pos = (str == 'orderup') and (idx + 1) or (idx - 1)
+        if (cB_CustomBags[pos] == nil) then
+            StatusMsg('The specified custom container is already at the '..((str == 'orderup') and 'top' or 'bottom'), '.', nil, true, false)
+        else
+            local ele = cB_CustomBags[idx]
+            cB_CustomBags[idx] = cB_CustomBags[pos]
+            cB_CustomBags[pos] = ele
+            cbNivaya:CreateAnchors()
+            StatusMsgVal('The specified custom container has been moved to position ', '.', pos, true)
+        end                        
+
     else
         ChatFrame1:AddMessage('|cFFFFFF00cargBags_Nivaya:|r')
-        StatusMsg('(', ') unlock - Toggle unlocked status.', cBnivCfg.Unlocked, false, true)
-        StatusMsg('(', ') new - Toggle the "New Items" filter.', cBnivCfg.NewItems, false, true)
-        StatusMsg('(', ') trade - Toggle the "Trade Goods" filter .', cBnivCfg.TradeGoods, false, true)
-        StatusMsg('(', ') armor - Toggle the "Armor and Weapons" filter .', cBnivCfg.Armor, false, true)
-        StatusMsg('(', ') junk - Toggle the "Junk" filter.', cBnivCfg.Junk, false, true)        
-        StatusMsg('(', ') ammo - Toggle Hiding Ammo/Shard bags by default.', cBnivCfg.AmmoAlwaysHidden, false, true)
-        StatusMsg('(', ') bankbg - Toggle black bank background color.', cBnivCfg.BankBlack, false, true)
-        StatusMsg('(', ') bankfilter - Toggle bank filtering.', cBnivCfg.FilterBank, false, true)
-        StatusMsg('(', ') empty - Toggle empty bagspace compression.', cBnivCfg.CompressEmpty, false, true)
-        StatusMsg('(', ') sortbags - Toggle auto sorting the bags.', cBnivCfg.SortBags, false, true)
-        StatusMsg('(', ') sortbank - Toggle auto sorting the bank.', cBnivCfg.SortBank, false, true)
-        StatusMsgVal('(', ') scale [number] - Set the overall scale.', cBnivCfg.scale, false)
-        StatusMsg('', ' addbag [name] - Add a custom container.')
-        StatusMsg('', ' delbag [name] - Remove a custom container.')
-        StatusMsg('', ' listbags - List all custom containers.')
+        StatusMsg('(', ') |cFFFFFF00unlock|r - Toggle unlocked status.', cBnivCfg.Unlocked, false, true)
+        StatusMsg('(', ') |cFFFFFF00new|r - Toggle the "New Items" filter.', cBnivCfg.NewItems, false, true)
+        StatusMsg('(', ') |cFFFFFF00trade|r - Toggle the "Trade Goods" filter .', cBnivCfg.TradeGoods, false, true)
+        StatusMsg('(', ') |cFFFFFF00armor|r - Toggle the "Armor and Weapons" filter .', cBnivCfg.Armor, false, true)
+        StatusMsg('(', ') |cFFFFFF00junk|r - Toggle the "Junk" filter.', cBnivCfg.Junk, false, true)        
+        StatusMsg('(', ') |cFFFFFF00bankbg|r - Toggle black bank background color.', cBnivCfg.BankBlack, false, true)
+        StatusMsg('(', ') |cFFFFFF00bankfilter|r - Toggle bank filtering.', cBnivCfg.FilterBank, false, true)
+        StatusMsg('(', ') |cFFFFFF00empty|r - Toggle empty bagspace compression.', cBnivCfg.CompressEmpty, false, true)
+        StatusMsg('(', ') |cFFFFFF00sortbags|r - Toggle auto sorting the bags.', cBnivCfg.SortBags, false, true)
+        StatusMsg('(', ') |cFFFFFF00sortbank|r - Toggle auto sorting the bank.', cBnivCfg.SortBank, false, true)
+        StatusMsgVal('(', ') |cFFFFFF00scale|r [number] - Set the overall scale.', cBnivCfg.scale, false)
+        StatusMsg('', ' |cFFFFFF00addbag|r [name] - Add a custom container.')
+        StatusMsg('', ' |cFFFFFF00delbag|r [name] - Remove a custom container.')
+        StatusMsg('', ' |cFFFFFF00listbags|r - List all custom containers.')
+        StatusMsg('', ' |cFFFFFF00movebag|r [name] - Moves a custom container to the other column.')
+        StatusMsg('', " |cFFFFFF00bagprio|r [name] - Changes the filter priority of a custom container. High priority prevents items from being classified as junk or new, low priority doesn't.")
+        StatusMsg('', ' |cFFFFFF00orderup|r [name] - Moves a custom container up.')
+        StatusMsg('', ' |cFFFFFF00orderdn|r [name] - Moves a custom container down.')
     end
     cbNivaya:UpdateBags()
 end
