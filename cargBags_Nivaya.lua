@@ -14,7 +14,6 @@ local L = cBnivL
 cB_Bags = {}
 cB_BagHidden = {}
 cB_CustomBags = {}
-local bagCreated = {}
 
 -- Those are default values only, change them ingame via "/cbniv":
 local optDefaults = {
@@ -84,7 +83,7 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
 
     cBnivCfg.AmmoAlwaysHidden = nil
     -- TODO end --
-    
+
     -----------------
     -- Frame Spawns
     -----------------
@@ -122,9 +121,9 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     cB_Bags.bagStuff    = C:New("cBniv_Stuff")
     
     for _,v in ipairs(cB_CustomBags) do 
-        if (v.prio == 1) then 
+        if (v.prio > 0) then 
             cB_Bags[v.name] = C:New(v.name) 
-            bagCreated[v.name] = true
+            v.active = true
             cB_filterEnabled[v.name] = true
         end 
     end
@@ -133,9 +132,9 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     cB_Bags.bagNew      = C:New("cBniv_NewItems")
 
     for _,v in ipairs(cB_CustomBags) do 
-        if (v.prio == 0) then 
+        if (v.prio <= 0) then 
             cB_Bags[v.name] = C:New(v.name) 
-            bagCreated[v.name] = true
+            v.active = true
             cB_filterEnabled[v.name] = true
         end
     end
@@ -202,7 +201,7 @@ function cbNivaya:CreateAnchors()
     if cBniv.BankCustomBags then
         local ref = { [0] = 0, [1] = 0 }
         for _,v in ipairs(cB_CustomBags) do
-            if bagCreated[v.name] then
+            if v.active then
                 local c = v.col
                 if ref[c] == 0 then ref[c] = (c == 0) and cB_Bags.bankQuest or cB_Bags.bankTrade end
                 CreateAnchorInfo(ref[c], cB_Bags['Bank'..v.name], "Bottom")
@@ -227,7 +226,7 @@ function cbNivaya:CreateAnchors()
     -- Custom Container Anchors:
     local ref = { [0] = 0, [1] = 0 }
     for _,v in ipairs(cB_CustomBags) do
-        if bagCreated[v.name] then
+        if v.active then
             local c = v.col
             if ref[c] == 0 then ref[c] = (c == 0) and cB_Bags.bagStuff or cB_Bags.bagNew end
             CreateAnchorInfo(ref[c], cB_Bags[v.name], "Top")
@@ -260,27 +259,27 @@ function cbNivaya:OnOpen()
     cB_Bags.main:Show()
     cbNivaya:ShowBags(cB_Bags.armor, cB_Bags.bagNew, cB_Bags.bagItemSets, cB_Bags.quest, cB_Bags.consumables, 
                       cB_Bags.tradegoods, cB_Bags.bagStuff, cB_Bags.bagJunk)
-    for _,v in ipairs(cB_CustomBags) do if bagCreated[v.name] then cbNivaya:ShowBags(cB_Bags[v.name]) end end
+    for _,v in ipairs(cB_CustomBags) do if v.active then cbNivaya:ShowBags(cB_Bags[v.name]) end end
 end
 
 function cbNivaya:OnClose()
     cbNivaya:HideBags(cB_Bags.main, cB_Bags.armor, cB_Bags.bagNew, cB_Bags.bagItemSets, cB_Bags.quest, cB_Bags.consumables, 
                       cB_Bags.tradegoods, cB_Bags.bagStuff, cB_Bags.bagJunk, cB_Bags.key)
-    for _,v in ipairs(cB_CustomBags) do if bagCreated[v.name] then cbNivaya:HideBags(cB_Bags[v.name]) end end
+    for _,v in ipairs(cB_CustomBags) do if v.active then cbNivaya:HideBags(cB_Bags[v.name]) end end
 end
 
 function cbNivaya:OnBankOpened() 
     cB_Bags.bank:Show(); 
     cbNivaya:ShowBags(cB_Bags.bankSets, cB_Bags.bankArmor, cB_Bags.bankQuest, cB_Bags.bankTrade, cB_Bags.bankConsumables) 
-    for _,v in ipairs(cB_CustomBags) do 
-        if cBniv.BankCustomBags and bagCreated[v.name] then cbNivaya:ShowBags(cB_Bags['Bank'..v.name]) end 
+    if cBniv.BankCustomBags then
+        for _,v in ipairs(cB_CustomBags) do if v.active then cbNivaya:ShowBags(cB_Bags['Bank'..v.name]) end end
     end
 end
 
 function cbNivaya:OnBankClosed()
     cbNivaya:HideBags(cB_Bags.bank, cB_Bags.bankSets, cB_Bags.bankArmor, cB_Bags.bankQuest, cB_Bags.bankTrade, cB_Bags.bankConsumables)
-    for _,v in ipairs(cB_CustomBags) do 
-        if cBniv.BankCustomBags and bagCreated[v.name] then cbNivaya:HideBags(cB_Bags['Bank'..v.name]) end 
+    if cBniv.BankCustomBags then
+        for _,v in ipairs(cB_CustomBags) do if v.active then cbNivaya:HideBags(cB_Bags['Bank'..v.name]) end end
     end
 end
 
@@ -330,7 +329,7 @@ function cbNivaya:CatDropDownInit()
     AddInfoItem("Stuff")
     AddInfoItem("Junk")
     AddInfoItem("Bag")
-    for _,v in ipairs(cB_CustomBags) do if bagCreated[v.name] then AddInfoItem(v.name) end end
+    for _,v in ipairs(cB_CustomBags) do if v.active then AddInfoItem(v.name) end end
 end
 
 function cbNivaya:CatDropDownOnClick(self, type)
@@ -442,10 +441,7 @@ local function HandleSlash(str)
     elseif str == 'addbag' then
         if not bagExists then
             local i = numBags + 1
-            cB_CustomBags[i] = {}
-            cB_CustomBags[i].name = str2
-            cB_CustomBags[i].col = 0
-            cB_CustomBags[i].prio = 1
+            cB_CustomBags[i] = { name = str2, col = 0, prio = 1, active = false }
             StatusMsg('The new custom container has been created. Reload your UI for this change to take effect!', '', nil, true, false)
         else
             StatusMsg('A custom container with this name already exists.', '', nil, true, false)
