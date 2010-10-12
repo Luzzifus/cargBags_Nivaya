@@ -6,7 +6,7 @@ For a detailed description and a feature overview visit [[http://www.wowinterfac
 
 == Version History ==
 
-=== r37 ===
+=== r37 === 
 
  * **Only for use with WoW 4.0.1+!**
  * Added command to move custom containers between the left and right columns.
