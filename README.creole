@@ -6,6 +6,15 @@ For a detailed description and a feature overview visit [[http://www.wowinterfac
 
 == Version History ==
 
+=== r38 beta === 
+
+ * Added buttons to move custom containers up, down and between columns.
+ * Added command to show/hide these buttons (/cbniv bagpos).
+ * Removed /cbniv movebag.
+ * Removed /cbniv orderup.
+ * Removed /cbniv orderdn.
+ 
+
 === r37 === 
 
  * **Only for use with WoW 4.0.1+!**

@@ -251,6 +251,7 @@ local GetFirstFreeSlot = function(bagtype)
 end
 
 function MyContainer:OnCreate(name, settings)
+    settings = settings or {}
 	self.Settings = settings
 
     local tBag, tBank, tKey = (name == "cBniv_Bag"), (name == "cBniv_Bank"), (name == "cBniv_Keyring")
@@ -309,7 +310,62 @@ function MyContainer:OnCreate(name, settings)
             close:SetScript("OnClick", function(self) if cbNivaya:AtBank() then CloseBankFrame() else CloseAllBags() end end)
         end
 	end
+    
+    -- mover buttons
+    if (settings.isCustomBag) then
 
+        local moveLR = function(dir)
+            local idx = -1
+            for i,v in ipairs(cB_CustomBags) do if v.name == name then idx = i end end
+            if (idx == -1) then return end
+
+            local tcol = (cB_CustomBags[idx].col + ((dir == "left") and 1 or -1)) % 2
+            cB_CustomBags[idx].col = tcol
+            cbNivaya:CreateAnchors()
+        end
+
+        local moveUD = function(dir)
+            local idx = -1
+            for i,v in ipairs(cB_CustomBags) do if v.name == name then idx = i end end
+            if (idx == -1) then return end
+
+            local pos = idx
+            local d = (dir == "up") and 1 or -1
+            repeat 
+                pos = pos + d
+            until 
+                (not cB_CustomBags[pos]) or (cB_CustomBags[pos].col == cB_CustomBags[idx].col)
+
+            if (cB_CustomBags[pos] ~= nil) then
+                local ele = cB_CustomBags[idx]
+                cB_CustomBags[idx] = cB_CustomBags[pos]
+                cB_CustomBags[pos] = ele
+                cbNivaya:CreateAnchors()
+            end
+        end        
+
+        local rightBtn = createTextButton(">", self, 20, 20)
+        rightBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -42, 2)
+        rightBtn:SetScript("OnClick", function() moveLR("right") end)
+
+        local leftBtn = createTextButton("<", self, 20, 20)
+        leftBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -62, 2)
+        leftBtn:SetScript("OnClick", function() moveLR("left") end)
+
+        local downBtn = createTextButton("v", self, 20, 20)
+        downBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -82, 2)
+        downBtn:SetScript("OnClick", function() moveUD("down") end)
+
+        local upBtn = createTextButton("^", self, 20, 20)
+        upBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -102, 2)
+        upBtn:SetScript("OnClick", function() moveUD("up") end)
+
+        self.rightBtn = rightBtn
+        self.leftBtn = leftBtn
+        self.downBtn = downBtn
+        self.upBtn = upBtn
+    end
+        
     local tBtnOffs = 0
   	if tBag or tBank then
 		 -- Bag bar for changing bags

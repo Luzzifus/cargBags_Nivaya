@@ -34,7 +34,6 @@ local optDefaults = {
 
 -- Those are internal settings, don't touch them at all:
 local defaults =    { 
-                    showAmmo = false, 
                     }
 
 local ItemSetCaption = (IsAddOnLoaded('ItemRack') and "ItemRack ") or (IsAddOnLoaded('Outfitter') and "Outfitter ") or "Item "
@@ -67,6 +66,7 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     cB_filterEnabled["TradeGoods"] = cBnivCfg.TradeGoods
     cB_filterEnabled["Junk"] = cBnivCfg.Junk
     cBniv.BankCustomBags = cBnivCfg.BankCustomBags
+    cBniv.BagPos = true
     
     -- TODO: remove everything between this and "TODO end" after a while!
     -- neccessary for upgrading from r36 or older:
@@ -122,7 +122,7 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     
     for _,v in ipairs(cB_CustomBags) do 
         if (v.prio > 0) then 
-            cB_Bags[v.name] = C:New(v.name) 
+            cB_Bags[v.name] = C:New(v.name, { isCustomBag = true } )
             v.active = true
             cB_filterEnabled[v.name] = true
         end 
@@ -133,7 +133,7 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
 
     for _,v in ipairs(cB_CustomBags) do 
         if (v.prio <= 0) then 
-            cB_Bags[v.name] = C:New(v.name) 
+            cB_Bags[v.name] = C:New(v.name, { isCustomBag = true } )
             v.active = true
             cB_filterEnabled[v.name] = true
         end
@@ -161,6 +161,7 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     
     cbNivaya:CreateAnchors()
     cbNivaya:Init()
+    cbNivaya:ToggleBagPosButtons()
 end
 
 function cbNivaya:CreateAnchors()
@@ -281,6 +282,27 @@ function cbNivaya:OnBankClosed()
     if cBniv.BankCustomBags then
         for _,v in ipairs(cB_CustomBags) do if v.active then cbNivaya:HideBags(cB_Bags['Bank'..v.name]) end end
     end
+end
+
+function cbNivaya:ToggleBagPosButtons()
+    for _,v in ipairs(cB_CustomBags) do 
+        if v.active then 
+            local b = cB_Bags[v.name]
+            
+            if cBniv.BagPos then
+                b.rightBtn:Hide()
+                b.leftBtn:Hide()
+                b.downBtn:Hide()
+                b.upBtn:Hide()
+            else
+                b.rightBtn:Show()
+                b.leftBtn:Show()
+                b.downBtn:Show()
+                b.upBtn:Show()
+            end
+        end
+    end
+    cBniv.BagPos = not cBniv.BagPos
 end
 
 local SetFrameMovable = function(f, v)
@@ -461,28 +483,14 @@ local function HandleSlash(str)
             end
         end
 
-    elseif str == 'movebag' then
-        local tcol = (cB_CustomBags[idx].col + 1) % 2
-        cB_CustomBags[idx].col = tcol
-        cbNivaya:CreateAnchors()
-        StatusMsg('The specified custom container has been moved to the |cFF00FF00'..((tcol == 0) and 'right' or 'left'), '|r column.', nil, true, false)
+    elseif str == 'bagpos' then
+        cbNivaya:ToggleBagPosButtons()
+        StatusMsg('Custom container movers are now ', '.', cBniv.BagPos, true, false)
 
     elseif str == 'bagprio' then
         local tprio = (cB_CustomBags[idx].prio + 1) % 2
         cB_CustomBags[idx].prio = tprio 
         StatusMsg('The priority of the specified custom container has been set to |cFF00FF00'..((tprio == 1) and 'high' or 'low')..'|r. Reload your UI for this change to take effect!', '', nil, true, false)
-
-    elseif (str == 'orderup') or (str == 'orderdn') then
-        local pos = (str == 'orderup') and (idx + 1) or (idx - 1)
-        if (cB_CustomBags[pos] == nil) then
-            StatusMsg('The specified custom container is already at the '..((str == 'orderup') and 'top' or 'bottom'), '.', nil, true, false)
-        else
-            local ele = cB_CustomBags[idx]
-            cB_CustomBags[idx] = cB_CustomBags[pos]
-            cB_CustomBags[pos] = ele
-            cbNivaya:CreateAnchors()
-            StatusMsgVal('The specified custom container has been moved to position ', '.', pos, true)
-        end
 
     elseif str == 'bankbags' then
         cBnivCfg.BankCustomBags = not cBnivCfg.BankCustomBags
@@ -504,10 +512,8 @@ local function HandleSlash(str)
         StatusMsg('', ' |cFFFFFF00addbag|r [name] - Add a custom container.')
         StatusMsg('', ' |cFFFFFF00delbag|r [name] - Remove a custom container.')
         StatusMsg('', ' |cFFFFFF00listbags|r - List all custom containers.')
-        StatusMsg('', ' |cFFFFFF00movebag|r [name] - Moves a custom container to the other column.')
+        StatusMsg('', ' |cFFFFFF00bagpos|r - Toggle buttons to move custom containers (up, down, left, right).')
         StatusMsg('', " |cFFFFFF00bagprio|r [name] - Changes the filter priority of a custom container. High priority prevents items from being classified as junk or new, low priority doesn't.")
-        StatusMsg('', ' |cFFFFFF00orderup|r [name] - Moves a custom container up.')
-        StatusMsg('', ' |cFFFFFF00orderdn|r [name] - Moves a custom container down.')
         StatusMsg('(', ') |cFFFFFF00bankbags|r - Show custom containers in the bank too.', cBnivCfg.BankCustomBags, false, true)
     end
     cbNivaya:UpdateBags()
