@@ -252,7 +252,7 @@ end
 
 function MyContainer:OnCreate(name, settings)
     settings = settings or {}
-	self.Settings = settings
+    self.Settings = settings
 
     local tBag, tBank, tKey = (name == "cBniv_Bag"), (name == "cBniv_Bank"), (name == "cBniv_Keyring")
     local tBankBags = string.find(name, "Bank")
@@ -345,19 +345,19 @@ function MyContainer:OnCreate(name, settings)
         end        
 
         local rightBtn = createTextButton(">", self, 20, 20)
-        rightBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -42, 2)
+        rightBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -2, 2)
         rightBtn:SetScript("OnClick", function() moveLR("right") end)
 
         local leftBtn = createTextButton("<", self, 20, 20)
-        leftBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -62, 2)
+        leftBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -22, 2)
         leftBtn:SetScript("OnClick", function() moveLR("left") end)
 
         local downBtn = createTextButton("v", self, 20, 20)
-        downBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -82, 2)
+        downBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -42, 2)
         downBtn:SetScript("OnClick", function() moveUD("down") end)
 
         local upBtn = createTextButton("^", self, 20, 20)
-        upBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -102, 2)
+        upBtn:SetPoint("TOPRIGHT", self, "TOPRIGHT", -62, 2)
         upBtn:SetScript("OnClick", function() moveUD("up") end)
 
         self.rightBtn = rightBtn
@@ -451,8 +451,8 @@ function MyContainer:OnCreate(name, settings)
     
     if tBag then
         local infoFrame = CreateFrame("Button", nil, self)
-        infoFrame:SetPoint("BOTTOMLEFT", 10, -6)
-        infoFrame:SetPoint("BOTTOMRIGHT", -100, -6)
+        infoFrame:SetPoint("BOTTOMLEFT", 150, -6)
+        infoFrame:SetPoint("BOTTOMRIGHT", -42, -6)
         infoFrame:SetHeight(32)
 
         -- Search bar

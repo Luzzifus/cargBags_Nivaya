@@ -6,7 +6,13 @@ For a detailed description and a feature overview visit [[http://www.wowinterfac
 
 == Version History ==
 
-=== r38 beta === 
+=== r39 ===
+
+ * Slightly adjusted position of bag mover buttons.
+ * Adjusted position of search bar, so that it doesn't overlap the money display anymore.
+ 
+
+=== r38 === 
 
  * Added buttons to move custom containers up, down and between columns.
  * Added command to show/hide these buttons (/cbniv bagpos).
