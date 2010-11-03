@@ -3,6 +3,7 @@ local cargBags = ns.cargBags
 
 local cbNivaya = cargBags:NewImplementation("Nivaya")
 cbNivaya:RegisterBlizzard()
+function cbNivaya:UpdateBags() for i = -2, 11 do cbNivaya:UpdateBag(i) end end
 
 local L = cBnivL
 cB_Filters = {}
@@ -11,7 +12,7 @@ cBniv_CatInfo = {}
 cB_ItemClass = {}
 
 cB_existsBankBag = { Armor = true, Quest = true, TradeGoods = true, Consumables = true }
-cB_filterEnabled = { Armor = true, Quest = true, TradeGoods = true, Consumables = true, Keyring = true, Junk = true, Stuff = true }
+cB_filterEnabled = { Armor = true, Quest = true, TradeGoods = true, Consumables = true, Keyring = true, Junk = true, Stuff = true, ItemSets = true }
 
 --------------------
 --Basic filters
@@ -115,6 +116,7 @@ local IR = IsAddOnLoaded('ItemRack')
 local OF = IsAddOnLoaded('Outfitter')
 
 cB_Filters.fItemSets = function(item)
+	if not cB_filterEnabled["ItemSets"] then return false end
 	if not item.link then return false end
     local tC = cBniv_CatInfo[item.name]
     if tC then return (tC == "ItemSets") and true or false end

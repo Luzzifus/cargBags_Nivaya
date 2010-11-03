@@ -22,6 +22,7 @@ local optDefaults = {
                     Armor = true,
                     CoolStuff = false,
                     Junk = true,
+					ItemSets = true,
                     BankBlack = false,
                     scale = 0.8,
                     FilterBank = true,
@@ -39,7 +40,6 @@ local defaults =    {
 local ItemSetCaption = (IsAddOnLoaded('ItemRack') and "ItemRack ") or (IsAddOnLoaded('Outfitter') and "Outfitter ") or "Item "
 local bankOpenState = false
 
-function cbNivaya:UpdateBags() for i = -2, 11 do cbNivaya:UpdateBag(i) end end
 function cbNivaya:ShowBags(...) for i = 1, select("#", ...) do local bag = select(i, ...); if not cB_BagHidden[bag.name] then bag:Show() end end end
 function cbNivaya:HideBags(...) for i = 1, select("#", ...) do select(i, ...):Hide() end end
 
@@ -65,6 +65,7 @@ function cargBags_Nivaya:ADDON_LOADED(event, addon)
     cB_filterEnabled["Armor"] = cBnivCfg.Armor
     cB_filterEnabled["TradeGoods"] = cBnivCfg.TradeGoods
     cB_filterEnabled["Junk"] = cBnivCfg.Junk
+	cB_filterEnabled["ItemSets"] = cBnivCfg.ItemSets
     cBniv.BankCustomBags = cBnivCfg.BankCustomBags
     cBniv.BagPos = true
     
@@ -418,7 +419,11 @@ local function HandleSlash(str)
         cBnivCfg.Junk = not cBnivCfg.Junk
         cB_filterEnabled["Junk"] = cBnivCfg.Junk
         StatusMsg('The "Junk" filter is now ', '.', cBnivCfg.Junk, true, false)
-    elseif str == 'bankbg' then
+    elseif str == 'sets' then
+        cBnivCfg.ItemSets = not cBnivCfg.ItemSets
+        cB_filterEnabled["ItemSets"] = cBnivCfg.ItemSets
+        StatusMsg('The "ItemSets" filters are now ', '.', cBnivCfg.ItemSets, true, false)
+	elseif str == 'bankbg' then
         cBnivCfg.BankBlack = not cBnivCfg.BankBlack
         StatusMsg('Black background color for the bank is now ', '. Reload your UI for this change to take effect!', cBnivCfg.BankBlack, true, false)
     elseif str == 'bankfilter' then
@@ -502,7 +507,8 @@ local function HandleSlash(str)
         StatusMsg('(', ') |cFFFFFF00new|r - Toggle the "New Items" filter.', cBnivCfg.NewItems, false, true)
         StatusMsg('(', ') |cFFFFFF00trade|r - Toggle the "Trade Goods" filter .', cBnivCfg.TradeGoods, false, true)
         StatusMsg('(', ') |cFFFFFF00armor|r - Toggle the "Armor and Weapons" filter .', cBnivCfg.Armor, false, true)
-        StatusMsg('(', ') |cFFFFFF00junk|r - Toggle the "Junk" filter.', cBnivCfg.Junk, false, true)        
+        StatusMsg('(', ') |cFFFFFF00junk|r - Toggle the "Junk" filter.', cBnivCfg.Junk, false, true)
+		StatusMsg('(', ') |cFFFFFF00sets|r - Toggle the "ItemSets" filters.', cBnivCfg.ItemSets, false, true)
         StatusMsg('(', ') |cFFFFFF00bankbg|r - Toggle black bank background color.', cBnivCfg.BankBlack, false, true)
         StatusMsg('(', ') |cFFFFFF00bankfilter|r - Toggle bank filtering.', cBnivCfg.FilterBank, false, true)
         StatusMsg('(', ') |cFFFFFF00empty|r - Toggle empty bagspace compression.', cBnivCfg.CompressEmpty, false, true)

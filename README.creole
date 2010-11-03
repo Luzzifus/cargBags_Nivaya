@@ -6,6 +6,13 @@ For a detailed description and a feature overview visit [[http://www.wowinterfac
 
 == Version History ==
 
+
+=== r40 ===
+
+ * Fixed ItemRack/Outfitter errors.
+ * Added option to enable/disable ItemSet filters.
+ 
+
 === r39 ===
 
  * Slightly adjusted position of bag mover buttons.
